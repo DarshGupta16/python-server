@@ -67,6 +67,20 @@ def run_request(url: str, method: str = "GET", fields: Optional[Dict[str, str]] 
     except Exception as e:
         return {"success": False, "error": str(e), "rtt": 0.0, "parsing": 0.0, "routing": 0.0, "operation": 0.0, "send": 0.0, "data": None}
 
+def get_todo_list_from_response(res_data: Any) -> List[Dict[str, Any]]:
+    if isinstance(res_data, dict):
+        if "todos" in res_data:
+            todos = res_data["todos"]
+            return todos if isinstance(todos, list) else []
+        if "status" in res_data:
+            fetch_res = run_request("http://127.0.0.1:8080/fetch-todos", "GET", {"benchmarking": "yes"})
+            if fetch_res["success"]:
+                return get_todo_list_from_response(fetch_res.get("data"))
+            return []
+    if isinstance(res_data, list):
+        return res_data
+    return []
+
 def run_comparison() -> None:
     print("\n" + "=" * 60)
     print("  NETWORKING ANALYSIS: 127.0.0.1 vs localhost")
@@ -129,14 +143,13 @@ def run_benchmark(target: int = 50, warmup: int = 300) -> None:
         todo_content = f"Warmup-{uuid.uuid4()}"
         res = run_request("http://127.0.0.1:8080/add-todo", "POST", {"todo": todo_content, "benchmarking": "yes"})
         if res["success"]:
-            todos_list = res.get("data", [])
-            if isinstance(todos_list, list):
-                for item in todos_list:
-                    if isinstance(item, dict) and item.get("todo") == todo_content:
-                        todo_id = item.get("todoId")
-                        if todo_id:
-                            created_todo_ids.append(str(todo_id))
-                        break
+            todos_list = get_todo_list_from_response(res.get("data"))
+            for item in todos_list:
+                if isinstance(item, dict) and item.get("todo") == todo_content:
+                    todo_id = item.get("todoId")
+                    if todo_id:
+                        created_todo_ids.append(str(todo_id))
+                    break
         if (i + 1) % 50 == 0 or (i + 1) == warmup:
             print(f"    Added {i + 1}/{warmup} items...")
     
@@ -211,8 +224,8 @@ def run_benchmark(target: int = 50, warmup: int = 300) -> None:
             
             # Post-request state updates
             if op == "POST /add-todo":
-                todos_list = res.get("data", [])
-                if isinstance(todos_list, list) and fields:
+                todos_list = get_todo_list_from_response(res.get("data"))
+                if fields:
                     added_title = fields.get("todo")
                     for item in todos_list:
                         if isinstance(item, dict) and item.get("todo") == added_title:
