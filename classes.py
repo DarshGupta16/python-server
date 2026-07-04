@@ -70,7 +70,7 @@ class Todos:
             self.doublyLinkedList.append(newNode)
             self.map[todoId] = newNode
         
-            self.list = [*self.list, {"todoId": todoId, "todo": todo}]
+            self.list.append({"todoId": todoId, "todo": todo})
             return {"status": 1}
         except Exception:
             return {"status": 0}
@@ -102,7 +102,7 @@ class Todos:
 
             del self.map[todoId]
         
-            self.list = [el for el in self.list if el["todoId"] != todoId]
+            self.list.remove({"todoId": todoId, "todo": node.todo})
 
             return {"status": 1}
         except Exception:
