@@ -88,3 +88,33 @@ So when a client hits `/fetch-todos` (or adds/removes a todo), the server just g
 As mentioned, this project serves to help me learn about HTTP servers and APIs and familiarize me a bit more with how these things work at a lower level. Thus, the majority of the code in this entire application has been handwritten by me.
 
 I have used AI for reviewing the code I have written and providing me with feedback and guidance. I have also used it for strengthening the typing in this codebase, because that wasn't something that I wanted to deal with right now. I will continue to use it for similar purposes throughout this project.
+
+# Benchmarking
+
+To measure and isolate the exact source of request latency, the server has a built-in benchmarking system.
+
+## How to trigger benchmarking
+To benchmark any request, include `"benchmarking=yes"` in the request body (`multipart/form-data`).
+
+## Response format
+When benchmarking is active, the JSON response format changes to wrap the original response data and attach server-side performance metrics (all values in milliseconds):
+
+```json
+{
+  "data": <original_response_data>,
+  "benchmark": {
+    "parsing_ms": 0.052,
+    "routing_ms": 0.001,
+    "operation_ms": 0.245,
+    "response_send_ms": 0.084
+  }
+}
+```
+
+## Running automated benchmarks
+To run the automated suite which executes multiple iterations of the endpoints and performs a loopback resolution latency comparison:
+
+```bash
+.venv/bin/python benchmark.py
+```
+
