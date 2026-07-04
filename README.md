@@ -41,9 +41,9 @@ curl -X POST http://localhost:8080/remove-todo -F "todoId=uuid-here"
 Here are the endpoints you can hit:
 
 - `GET /` - Just checks if the app is up and running.
-- `GET /fetch-todos` - Returns a list of all your current todos.
-- `POST /add-todo` - Adds a new todo to the list. Needs a `multipart/form-data` payload containing `todo`.
-- `POST /remove-todo` - Removes a todo from the list. Needs a `multipart/form-data` payload containing `todoId`.
+- `GET /fetch-todos` - Returns a raw JSON array of todos containing their ids and values.
+- `POST /add-todo` - Adds a new todo, and returns the updated raw JSON array. Needs a `multipart/form-data` payload containing `todo`.
+- `POST /remove-todo` - Removes a todo, and returns the updated raw JSON array. Needs a `multipart/form-data` payload containing `todoId`.
 
 # Architectural decisions I've made.
 
@@ -72,6 +72,16 @@ My decisions on the architecture changed when I learned that python does not act
 Thus, maintaining three data structures as I was doing initially, is something that would be better suited to a language such as Rust rather than Python.
 
 In light of this new knowledge I've discovered, the Todos class has been updated to use a simple python dictionary instead, for O(1) insert and delete ops, and O(n) list conversion. The resulting memory footprint is also lower than what I had initially, and the code is much smaller and cleaner.
+
+## Optimizing with a pre-serialized cache
+
+To make the read request `/fetch-todos` even faster, I also decided to cache the response.
+
+Normally, whenever a client fetches todos, the server has to build a list of dictionaries, convert it into JSON using `json.dumps()`, and then encode it to bytes before sending it over the socket.
+
+To avoid this overhead at request-time, the `Todos` class now maintains a `cached_response` variable. When a todo is added or removed, it updates this cache by pre-serializing the updated array into HTTP-ready bytes.
+
+So when a client hits `/fetch-todos` (or adds/removes a todo), the server just grabs these pre-computed bytes and sends them directly to the socket. This completely bypasses any JSON serialization or memory allocations during the request, making the server much faster.
 
 # Use of AI
 

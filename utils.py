@@ -17,6 +17,10 @@ def respond(client: socket.socket, body: Any) -> None:
     client.sendall(response.encode())
     client.close()
 
+def send_cached_response(client: socket.socket, response: bytes) -> None:
+    client.sendall(response)
+    client.close()
+
 def reject(client: socket.socket, status_code: str, message: str) -> None:
     response = (
         f"HTTP/1.1 {status_code}\r\n"

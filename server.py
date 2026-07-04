@@ -26,7 +26,7 @@ while True:
     if len(route) > 0:
         match route[0]:
             case "fetch-todos":
-                respond(client, {"todos": (todos.fetch_todos())})
+                send_cached_response(client, todos.cached_response)
             case "add-todo":
                 if method != "POST":
                     reject(client, "400 BAD REQUEST", "Method not allowed")
@@ -37,7 +37,10 @@ while True:
                     continue
                 todo = body["todo"]
                 result = todos.add_todo(todo=todo)
-                respond(client, result)
+                if result["status"] == 1:
+                    send_cached_response(client, todos.cached_response)
+                else:
+                    reject(client, "500 INTERNAL SERVER ERROR", "Failed to add todo")
             case "remove-todo":
                 if method != "POST":
                     reject(client, "400 BAD REQUEST", "Method not allowed")
@@ -48,7 +51,10 @@ while True:
                     continue
                 todoId = body["todoId"]
                 result = todos.remove_todo(todoId=todoId)
-                respond(client, result)
+                if result["status"] == 1:
+                    send_cached_response(client, todos.cached_response)
+                else:
+                    reject(client, "500 INTERNAL SERVER ERROR", "Failed to remove todo")
             case _:
                 reject(client, "404 NOT FOUND", "Page not found")
     else:
